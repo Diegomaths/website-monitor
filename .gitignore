@@ -1,7 +1,3 @@
-py3.11.5/
-autobook/
 *.sh
 __pycache__/
-rand.txt
-env-autobook
 credentials.json
