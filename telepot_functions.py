@@ -1,8 +1,8 @@
 import datetime
 import telepot
-with open("telegram_token.json", "r") as f:
+with open("credentials.json", "r") as f:
     credentials = eval(f.read())
-    TOKEN = credentials["token"]
+    TOKEN = credentials["solar_energy_token"]
     CHATID = credentials["chat_id"]
 
 def t_notify(msg="ok"):
