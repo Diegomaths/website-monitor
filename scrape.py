@@ -82,11 +82,12 @@ def telegram_bot():
     def send_welcome(message):
         tg_bot.reply_to(message, "Hi!")
 
-    @tg_bot.message_handler(commands=['battery', "fotovoltaico", "pannelli"])
+    @tg_bot.message_handler(commands=['battery', "fotovoltaico", "pannelli", "refresh"])
     def send_battery(message):
         from_user_dict = message.from_user.__dict__
         chat_dict = message.chat.__dict__
         tg_bot.reply_to(message, f"Hello {from_user_dict['first_name']}, I'll check battery level for you...")
+        scrape_battery_level()
         with open("old_level.txt", "r") as f:
             battery_level = f.read()
         tg_bot.send_message(chat_dict["id"], f"Battery level: {battery_level}")
@@ -110,7 +111,7 @@ telegram_thread.start()
 # def job():
 #     scrape_battery_level()
 
-schedule.every(60).seconds.do(scrape_battery_level)
+schedule.every(3600).seconds.do(scrape_battery_level)
 
 while True:
     schedule.run_pending()
