@@ -4,7 +4,7 @@ import sys
 import time
 import threading
 import schedule
-from cryptocompare import get_price
+import os
 def is_day():
     current_hour = datetime.datetime.now().hour
     return 8 <= current_hour <= 23
@@ -76,6 +76,16 @@ def scrape_battery_level(webpage = 'https://xstoragehome.com/'):
         logger.info('End of process. \n__________________________________________________________________________________')
         # t_send_doc("logs/web_monitor.log")
 
+def format_datetime(mod_time, current_time):
+    if mod_time.date() == current_time.date():
+        return f"oggi alle {mod_time.strftime('%H:%M')}"
+    elif mod_time.date() == (current_time - datetime.timedelta(days=1)).date():
+        return f"ieri alle {mod_time.strftime('%H:%M')}"
+    else:
+        return mod_time.strftime('il %d/%m alle %H:%M')
+
+# print(f"Aggiornato {formatted_modification_time}")
+
 def telegram_bot():
     tg_bot = telebot.TeleBot(TOKEN)
     @tg_bot.message_handler(commands=['start'])
@@ -86,11 +96,11 @@ def telegram_bot():
     def send_battery(message):
         from_user_dict = message.from_user.__dict__
         chat_dict = message.chat.__dict__
-        tg_bot.reply_to(message, f"Hello {from_user_dict['first_name']}, I'll check battery level for you...")
+        tg_bot.reply_to(message, f"Ciao {from_user_dict['first_name']}, vado a controllare.")
         scrape_battery_level()
         with open("old_level.txt", "r") as f:
             battery_level = f.read()
-        tg_bot.send_message(chat_dict["id"], f"Battery level: {battery_level}")
+        tg_bot.send_message(chat_dict["id"], f"I pannelli sono al {battery_level}")
 
     @tg_bot.message_handler(func=lambda msg:True)
     def show_battery_level(message):
@@ -101,7 +111,9 @@ def telegram_bot():
             # scrape_battery_level()
             with open("old_level.txt", "r") as f:
                 battery_level = f.read()
-            tg_bot.send_message(chat_dict["id"], f"I pannelli sono al {battery_level}")
+            formatted_modification_time = format_datetime(modification_datetime, datetime.datetime.now())
+            tg_bot.send_message(chat_dict["id"], 
+            f"I pannelli sono al {battery_level}.\nDato aggiornato {formatted_modification_time}")
     tg_bot.infinity_polling()
 telegram_thread = threading.Thread(target=telegram_bot)
 telegram_thread.daemon = True
