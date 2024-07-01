@@ -42,6 +42,7 @@ webpage = 'https://www.v-padel.com/vpadel/'
 options = Options()
 options.add_argument("--headless")
 driver = webdriver.Firefox(options=options)
+response = 'Not booked'
 try:
     driver.get(webpage)
     username_field = driver.find_element(By.XPATH, '//*[@id="edit-name"]')
@@ -90,13 +91,16 @@ try:
         logger.info("FREE COURT!")
     except Exception as e:
         logger.warning("NOT BOOKED!")
+        response = response + f"\n{e}"
         logger.warning(f"{e} didn't work.")
     # Confirm booking
     save_booking_xpath = '//*[@id="edit-submit"]'
     if confirm_booking == 'Y':
-        logger.info(f'Saving booking for Court 1 on {booking_date} at {time_to_book}...')
         click_button(save_booking_xpath, wait=0)
+        response = f'Court 1 booked for {booking_date} at {time_to_book}'
+        logger.info(response)
     else: 
+        response = f'Court 1 NOT booked for {booking_date} at {time_to_book}'
         logging.warning(f'Booking not confirmed!')
 
         
@@ -106,4 +110,6 @@ except Exception as e:
 finally:
     # Close webpage
     driver.quit()
-    logger.info('End of process. \n__________________________________________________________________________________')
+    logger.info(f'End of process on {webpage}. \n__________________________________________________________________________________')
+    with open("data/booked_court.txt", "w") as f:
+        f.write(response)
