@@ -188,7 +188,7 @@ def get_dataframe(results):
     return df
 
 def transform(input_string, formation = "3-4-3"):
-    scrape_ratings()
+    # scrape_ratings()
     ris = manage_scraping_result()
     df = get_dataframe(ris)
     df.Player = df.Player.str.lower()
@@ -212,7 +212,7 @@ def transform(input_string, formation = "3-4-3"):
     df_with_total.set_index("Player", inplace=True)
     res = df_with_total["Fantavoto"]
     with open("data/ratings.txt", "w") as f:
-        f.write(series_to_string(res).replace("nan", "SV"))
+        f.write(series_to_string(res).replace(": nan", ": SV"))
 
 if __name__ == "__main__": 
     try:

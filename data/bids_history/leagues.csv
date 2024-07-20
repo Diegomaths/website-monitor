@@ -1,0 +1,4 @@
+code,league_name,n_teams,n_players_per_team,bid_type,season
+"01",Mantra,8,28,Random,2023/2024
+"02",FM,8,25,Call by role,2023/2024
+"03",FC,10,25,AZ by role,2023/2024
