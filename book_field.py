@@ -21,7 +21,7 @@ user = sys.argv[1]
 psw = sys.argv[2]
 
 if len(sys.argv) > 3: time_to_book = sys.argv[3]
-else: time_to_book = '20:00'
+else: time_to_book = '18:30'
 
 if len(sys.argv) > 4: confirm_booking = sys.argv[4]
 else: confirm_booking = 'N'
@@ -30,6 +30,17 @@ def find_field_id(start_time, add = 0):
     h = (float(start_time.split(':')[0]) - 8)*2
     m = float(start_time.split(':')[1])/30
     return str(int(h+m+add))
+
+def find_field_number(start_time):
+    a = ["17:00", "18:30", "20:00", "21:30"]
+    c = ["18:00", "19:30", "21:00", "22:30"]
+    b = ["17:30", "19:00", "20:30", "22:00"]
+    out = 1
+    if start_time in a: out=1
+    if start_time in b: out=2
+    if start_time in c: out=3
+    print(f"Apertura campo {out} delle {start_time}")
+    return out
 
 def click_button(xpath, wait=0.1):
     logger.info(f"Clicking button: {xpath}")
@@ -57,7 +68,13 @@ try:
     logger.info('Opening Court 1 booking...')
     click_button('//*[@id="menu-1029-1"]/a')  # click book court button
     court1_xpath = '/html/body/div[2]/div[1]/div[5]/div[2]/div[2]/div/div/div/div[2]/table/tbody/tr[1]/td[1]/div/span[2]/a'
-    click_button(court1_xpath)  # click court 1 button
+    courts_pos = [(1, 1),(1, 2),(2, 1)]
+    selected_court = find_field_number(time_to_book)
+    row = courts_pos[selected_court-1][0]
+    col = courts_pos[selected_court-1][1]
+    courtn_xpath = f'/html/body/div[2]/div[1]/div[5]/div[2]/div[2]/div/div/div/div[2]/table/tbody/tr[{row}]/td[{col}]/div/span[2]/a'
+
+    click_button(courtn_xpath)  # click court button
 
     # Select day to book
     general_xpath = '//*[@id="block-system-main"]/div/div/div[2]/div/div/table/tbody[2]/tr[NUMBER]/td[2]/div/div/a'
@@ -71,15 +88,17 @@ try:
     ct0 = datetime.datetime.now()
     logger.info("Waiting for next day...")
     loop = True
+    auto = True
     while loop:
         ct = datetime.datetime.now()
         if ct.second < 53 and ct.second!=0:
             time.sleep(5)
         if ct.minute != ct0.minute:
             logger.info("One day forward...")
-            click_button(next_day, wait=0)
+            if auto:
+                click_button(next_day, wait=0)
             loop = False
-    logger.info(f"Opening Court 1 - {booking_date}")
+    logger.info(f"Opening Court {selected_court} - {booking_date}")
 
     # Select time to book
     try:
@@ -95,12 +114,13 @@ try:
         logger.warning(f"{e} didn't work.")
     # Confirm booking
     save_booking_xpath = '//*[@id="edit-submit"]'
+    
     if confirm_booking == 'Y':
         click_button(save_booking_xpath, wait=0)
-        response = f'Court 1 booked for {booking_date} at {time_to_book}'
+        response = f'Court {selected_court} booked for {booking_date} at {time_to_book}'
         logger.info(response)
     else: 
-        response = f'Court 1 NOT booked for {booking_date} at {time_to_book}'
+        response = f'Court {selected_court} NOT booked for {booking_date} at {time_to_book}'
         logging.warning(f'Booking not confirmed!')
 
         

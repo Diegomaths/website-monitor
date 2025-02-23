@@ -16,7 +16,8 @@ from pyvirtualdisplay import Display
 from oauth2client.service_account import ServiceAccountCredentials
 import telebot
 from telebot import types
-
+from pathlib import Path
+from audio_processor import AudioConverter
 from expenses import read_google_sheet, preprocess_google_sheet
 # from calcola_voti import compute_ratings, series_to_string
 
@@ -27,7 +28,7 @@ console_handler.setLevel(logging.INFO)
 console_handler.setFormatter(formatter)
 logger = logging.getLogger('')
 logger.addHandler(console_handler)
-
+ac = AudioConverter()
 # Leggi le credenziali dal file
 try:
     with open("credentials.json", "r") as f:
@@ -44,7 +45,7 @@ except Exception as e:
 def scrape_battery_level(webpage='https://xstoragehome.com/'):
     try:
         options = Options()
-        options.add_argument("--headless")
+        # options.add_argument("--headless")
         driver = webdriver.Firefox(options=options)
         driver.get(webpage)
         time.sleep(15)
@@ -182,23 +183,56 @@ def telegram_bot():
         else:
             tg_bot.reply_to(message, f"Ciao {user}. Non sei autorizzato ad utilizzare questo comando.")
 
-    @tg_bot.message_handler(commands=["get_log"])
-    def get_log(message):
-        logs_list = os.listdir("./logs")
-        chat_id = message.chat.id
-        markup = types.InlineKeyboardMarkup()
-        for el in logs_list:
-            el = el.replace(".log", "")
-            button = types.InlineKeyboardButton(el, callback_data=f"{el}.log")
-            markup.add(button)
-        tg_bot.send_message(chat_id, "Scegli un'opzione:", reply_markup=markup)
+    # @tg_bot.message_handler(commands=["get_log"])
+    # def get_log(message):
+    #     logs_list = os.listdir("./logs")
+    #     chat_id = message.chat.id
+    #     markup = types.InlineKeyboardMarkup()
+    #     for el in logs_list:
+    #         el = el.replace(".log", "")
+    #         button = types.InlineKeyboardButton(el, callback_data=f"{el}.log")
+    #         markup.add(button)
+    #     tg_bot.send_message(chat_id, "Scegli un'opzione:", reply_markup=markup)
 
-    @tg_bot.callback_query_handler(func=lambda call: call.data.endswith(".log"))
-    def handle_query(call):
-        chat_id = call.from_user.id
-        file_path = f"./logs/{call.data}"
-        with open(file_path, 'rb') as file:
-            tg_bot.send_document(chat_id, file)
+    # @tg_bot.callback_query_handler(func=lambda call: call.data.endswith(".log"))
+    # def handle_query(call):
+    #     chat_id = call.from_user.id
+    #     file_path = f"./logs/{call.data}"
+    #     with open(file_path, 'rb') as file:
+    #         tg_bot.send_document(chat_id, file)
+
+
+    @tg_bot.message_handler(commands=["transcript"])
+    def get_transcription(message):
+        chat_id = message.chat.id
+        tg_bot.send_message(chat_id, "Invia il file")
+
+    @tg_bot.message_handler(content_types=['audio', 'voice', 'document'])
+    def handle_audio(message):
+        chat_id = message.chat.id
+        if message.content_type == 'audio':
+            file_info = tg_bot.get_file(message.audio.file_id)
+        elif message.content_type == 'voice':
+            file_info = tg_bot.get_file(message.voice.file_id)
+        elif message.content_type == 'document':
+            file_info = tg_bot.get_file(message.document.file_id)
+        else:
+            tg_bot.send_message(chat_id, "Tipo di file non supportato.")
+            return
+
+        downloaded_file = tg_bot.download_file(file_info.file_path)
+        file_name = file_info.file_path.split("/")[-1]
+        save_path = os.path.join(os.getcwd(), "audio_samples", "tmp", file_name)
+        print("\n\n\n", file_info.file_path, "\n\n\n", file_name, save_path)
+        with open(save_path, 'wb') as new_file:
+            new_file.write(downloaded_file)
+        ac.process_audio(save_path)
+        print(f"File finale = {ac.output_file_path}")
+
+        with open(ac.output_file_path, 'rb') as file:
+            transcription = file.read()
+            tg_bot.send_message(chat_id, transcription)
+
 
     @tg_bot.message_handler(commands=["commands"])
     def list_commands(message):
